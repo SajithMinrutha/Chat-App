@@ -3,6 +3,7 @@ import authRoutes from "./routes/auth.route.js";
 import dotenv from "dotenv";
 import { connectDB } from "./libs/db.js";
 
+APP.use(express.json()); //allow json data to be sent in the request body
 dotenv.config();
 const APP = express();
 const PORT = process.env.PORT || 5002;
