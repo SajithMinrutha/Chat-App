@@ -1,11 +1,11 @@
+import cloudinary from "../libs/cloudinary.js";
 import { generateToken } from "../libs/utils.js";
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 
 export const signup = async (req, res) => {
+  const { fullName, email, password } = req.body;
   try {
-    const { fullName, email, password } = req.body;
-
     if (!fullName || !email || !password) {
       return res.status(400).json({ message: "Invalid Form" });
     }
@@ -13,7 +13,7 @@ export const signup = async (req, res) => {
     if (password.length < 6) {
       return res
         .status(400)
-        .join({ message: "Message should be longer than 6 characters" });
+        .join({ message: "Message should be longer than 6 characters" }); //if we dont use return the code afterwords will run
     }
 
     const user = await User.findOne({ email });
@@ -46,8 +46,66 @@ export const signup = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+export const login = async (req, res) => {
+  const { email, password } = req.body;
 
-export const login = (req, res) => {};
+  try {
+    if ((!email, !password)) {
+      res.status(400).json({ message: "All Fields Are Required" });
+    }
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "Invalid Credentials" });
+    }
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    if (!isPasswordCorrect) {
+      return res.status(400).json({ message: "Invalid Credentials" });
+    }
+    generateToken(user._id, res);
+
+    res.status(200).json({
+      message: "User Logged In Successfully",
+      id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      profilePic: user.profilePic,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
 export const logout = (req, res) => {
-  res.send("Signup");
+  try {
+    res.cookie("jwt", "", { maxAge: 0 });
+    res.status(200).json({ message: "User LoggedOut Successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+export const updateProfile = async (req, res) => {
+  try {
+    const { profilePic } = req.body;
+    const userId = req.user._id; //this is inside the middleware
+    if (!profilePic) {
+      return res.status(400).json({ message: "Profile pic is required" });
+    }
+    const uploadResponse = await cloudinary.uploader.upload(profilePic);
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        profilePic: uploadResponse.secure_url,
+      },
+      { new: true }
+    );
+    res.status(200).json("Profile pic updated");
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+export const checkAuth = async () => {
+  try {
+    res.status(200).json(req.user);
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
 };
