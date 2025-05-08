@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { env } from "process";
 
 export const connectDB = async () => {
   try {
